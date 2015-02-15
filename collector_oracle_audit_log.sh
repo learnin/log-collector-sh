@@ -2,6 +2,11 @@
 
 . config.profile
 
+canIUse() {
+  type $1 >/dev/null 2>&1
+  return $?
+}
+
 # TODO 2重起動チェック
 
 mputCmd="mput"
@@ -17,9 +22,9 @@ ls ${TARGET_LOG_DIR}/*.xml >> $targetFileList
 while read targetFileName; do
   md5file=${TMP_DIR}/${targetFileName}.end
 
-  if [ `type md5sum >/dev/null 2>&1; echo $?` -eq 0 ]; then
+  if canIUse md5sum; then
     md5sum $targetFileName > $md5file
-  elif [ `type digest >/dev/null 2>&1; echo $?` -eq 0 ]; then
+  elif canIUse digest; then
     digest -a md5 $targetFileName > $md5file
   else
     echo "neither md5sum nor digest command is not found."
@@ -70,11 +75,11 @@ while read targetFileName; do
   else
     # プロセスが存在してもPIDがリサイクルされているだけの可能性があるため、
     # そのプロセスがこのログを開いているか確認する。
-    if [ `type lsof >/dev/null 2>&1; echo $?` -eq 0 ]; then
+    if canIUse lsof; then
       if [ `lsof -p $oraclePid | grep -c $targetFileName` -eq 0 ]; then
         rm -f $targetFileName
       fi
-    elif [ `type pfiles >/dev/null 2>&1; echo $?` -eq 0 ]; then
+    elif canIUse pfiles; then
       if [ `pfiles $oraclePid | grep -c $targetFileName` -eq 0 ]; then
         rm -f $targetFileName
       fi
