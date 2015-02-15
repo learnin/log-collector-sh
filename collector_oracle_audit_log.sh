@@ -17,10 +17,13 @@ ls ${TARGET_LOG_DIR}/*.xml >> $targetFileList
 while read targetFileName; do
   md5file=${TMP_DIR}/${targetFileName}.end
 
-  if [ "$uname" = 'SunOS' ]; then
+  if [ `type md5sum >/dev/null 2>&1; echo $?` -eq 0 ]; then
+    md5sum $targetFileName > $md5file
+  elif [ `type digest >/dev/null 2>&1; echo $?` -eq 0 ]; then
     digest -a md5 $targetFileName > $md5file
   else
-    md5sum $targetFileName > $md5file
+    echo "neither md5sum nor digest command is not found."
+    exit 1
   fi
   mputCmd="${mputCmd} ${targetFileName} ${md5file}"
   shouldTransferFileCount=`expr $shouldTransferFileCount + 2`
@@ -42,9 +45,11 @@ EOF
 
 if [ `grep -c "$FTP_SUCCESS_MSG" $ftpLog` -ne $shouldTransferFileCount ]; then
   echo "ftp Error"
+  exit 1
 fi
 if [ `egrep -c "^4|^6" $ftpLog` -ne 0 ]; then
   echo "ftp Error"
+  exit 1
 fi
 
 while read targetFileName; do
