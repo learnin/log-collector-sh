@@ -4,4 +4,4 @@ FTP_USER=ftp
 FTP_PASSWORD=ftppass
 FTP_DIR=/
 FTP_SUCCESS_MSG="226 Transfer complete"
-TMP_DIR=tmp/
+TMP_DIR=tmp
