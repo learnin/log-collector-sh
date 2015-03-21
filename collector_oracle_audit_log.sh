@@ -45,75 +45,73 @@ isOpened() {
   return 1
 }
 
-makeTargetFileList() {
-  _makeTargetFileList_func_list=$1
-  _makeTargetFileList_func_tmp_list=${TMP_DIR}/tmp_target_file_list.txt
-  _makeTargetFileList_func_logDir=$2
+doFtpPut() {
+  _doFtpPut_func_src=$1
+  _doFtpPut_func_dest=$2
+  _doFtpPut_func_ftpLog=${TMP_DIR}/ftp.log
 
-  ls ${_makeTargetFileList_func_logDir}/*.aud > $_makeTargetFileList_func_tmp_list
-  ls ${_makeTargetFileList_func_logDir}/*.xml >> $_makeTargetFileList_func_tmp_list
-  while read _makeTargetFileList_func_file
-  do
-    if isOpened $_makeTargetFileList_func_file; then
-      echo "$_makeTargetFileList_func_file closed" >> $_makeTargetFileList_func_list
-    else
-      echo "$_makeTargetFileList_func_file opened" >> $_makeTargetFileList_func_list
-    fi
-  done < $_makeTargetFileList_func_tmp_list
+  ftp -inv <<EOF > $_doFtpPut_func_ftpLog
+open $FTP_HOST
+user $FTP_USER $FTP_PASSWORD
+binary
+put $_doFtpPut_func_src $_doFtpPut_func_dest
+bye
+EOF
+
+  if [ `grep -c "$FTP_SUCCESS_MSG" $_doFtpPut_func_ftpLog` -ne 1 ]; then
+    return 1
+  fi
+  if [ `egrep -c "^4|^6" $_doFtpPut_func_ftpLog` -ne 0 ]; then
+    return 1
+  fi
+  return 0
 }
 
 # TODO 2重起動チェック
 
-mputCmd="mput"
-shouldTransferFileCount=0
-
-uname=`uname`
+hasError="false"
 prefix=`hostname`_`date '+%Y%m%d%H%M%S'`_
-
 targetFileList=${TMP_DIR}/target_file_list.txt
 
-makeTargetFileList $targetFileList $TARGET_LOG_DIR
+ls ${TARGET_LOG_DIR}/*.aud > $targetFileList
+ls ${TARGET_LOG_DIR}/*.xml >> $targetFileList
 
 exec 9<&0 < $targetFileList
-while read line
+while read targetFilePath
 do
-  fileName=`echo $line | awk '{print $1}'`
-  endFile=${TMP_DIR}/${fileName}.end
-  touch $endFile
-  mputCmd="${mputCmd} ${fileName} ${endFile}"
-  shouldTransferFileCount=`expr $shouldTransferFileCount + 2`
+  openStatus="opened"
+  if isOpened $targetFilePath; then
+    openStatus="closed"
+  fi
+
+  targetFileName=`basename $targetFilePath`
+
+  doFtpPut $targetFilePath ${FTP_DIR}/${prefix}${targetFileName}
+  if [ $? -ne 0 ]; then
+    echo "ftp Error. file=${targetFilePath}"
+    hasError="true"
+    continue
+  fi
+
+  endFilePath=${TMP_DIR}/${prefix}`echo $targetFileName | awk -F . '{print $1}'`.end
+  touch $endFilePath
+  endFileName=`basename $endFilePath`
+
+  doFtpPut $endFilePath ${FTP_DIR}/${endFileName}
+  if [ $? -ne 0 ]; then
+    echo "ftp Error. file=${endFilePath}"
+    hasError="true"
+    continue
+  fi
+
+  if [ $openStatus = "closed" ]; then
+    rm -f $targetFilePath
+    rm -f $endFilePath
+  fi
 done
 exec 0<&9 9<&-
 
-nmapCmd='nmap $0 '${prefix}'$0'
-
-ftpLog=${TMP_DIR}/ftp.log
-
-ftp -inv <<EOF > $ftpLog
-open $FTP_HOST
-user $FTP_USER $FTP_PASSWORD
-binary
-cd $FTP_DIR
-$nmapCmd
-$mputCmd
-bye
-EOF
-
-if [ `grep -c "$FTP_SUCCESS_MSG" $ftpLog` -ne $shouldTransferFileCount ]; then
-  echo "ftp Error"
+if [ $hasError = "true" ]; then
   exit 1
 fi
-if [ `egrep -c "^4|^6" $ftpLog` -ne 0 ]; then
-  echo "ftp Error"
-  exit 1
-fi
-
-while read line
-do
-  openStatus=`echo $line | awk '{print $2}'`
-  if [ $openStatus = "closed" ]; then
-    fileName=`echo $line | awk '{print $1}'`
-    rm -f $fileName
-done < $targetFileList
-
 exit 0
