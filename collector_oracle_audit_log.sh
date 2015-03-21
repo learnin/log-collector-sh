@@ -1,7 +1,12 @@
 #!/bin/sh
 
+# Solaris 10 の sh 及び Red Hat Enterprise Linux/CentOS の bash で実行することを想定
+
 . config.profile
 
+# 引数のコマンドが使用可能(存在する)か判定する
+# args: コマンド
+# 戻り値: 0:使用可能 1:使用不可能
 canIUse() {
   type $1 >/dev/null 2>&1
   return $?
@@ -17,8 +22,7 @@ isOpened() {
   # それ以前は
   # <プロセス名>_<プロセス番号>.<拡張子>
 
-  # Solaris 10の/bin/shではローカル変数宣言localは使えないので変数名に関数名を入れている。
-  # 可読性が悪いようなら別ファイルに切り出した方がいいかも。
+  # Solaris 10の/bin/shではローカル変数宣言localは使えないので変数名に関数名を入れている
   _isOpened_func_filename=$1
   _isOpened_func_length=`echo $_isOpened_func_filename | awk -F"_" '{print NF}'`
 
@@ -45,6 +49,11 @@ isOpened() {
   return 1
 }
 
+# $FTP_USER, $FTP_PASSWORD で $FTP_HOST へ接続し、引数のファイルを put する
+# ftp 応答メッセージを見て、正常/異常終了を判定する
+# 判定には、転送成功メッセージとして $FTP_SUCCESS_MSG を使用する
+# args: 転送元ファイルパス, 転送先ファイルパス
+# 戻り値: 0:正常終了 1:異常終了
 doFtpPut() {
   _doFtpPut_func_src=$1
   _doFtpPut_func_dest=$2
@@ -84,8 +93,8 @@ do
     openStatus="closed"
   fi
 
+  # ログファイルを転送
   targetFileName=`basename $targetFilePath`
-
   doFtpPut $targetFilePath ${FTP_DIR}/${prefix}${targetFileName}
   if [ $? -ne 0 ]; then
     echo "ftp Error. file=${targetFilePath}"
@@ -93,10 +102,10 @@ do
     continue
   fi
 
+  # 転送完了通知用ファイルを転送
   endFilePath=${TMP_DIR}/${prefix}`echo $targetFileName | awk -F . '{print $1}'`.end
   touch $endFilePath
   endFileName=`basename $endFilePath`
-
   doFtpPut $endFilePath ${FTP_DIR}/${endFileName}
   if [ $? -ne 0 ]; then
     echo "ftp Error. file=${endFilePath}"
@@ -104,6 +113,7 @@ do
     continue
   fi
 
+  # 既に解放されているログファイルだった場合は削除
   if [ $openStatus = "closed" ]; then
     rm -f $targetFilePath
     rm -f $endFilePath
