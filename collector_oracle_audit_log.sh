@@ -1,4 +1,5 @@
 #!/bin/sh
+set -u
 
 # Solaris 10 の sh 及び Red Hat Enterprise Linux/CentOS の bash で実行することを想定
 
