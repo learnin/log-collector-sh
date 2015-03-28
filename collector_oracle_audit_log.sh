@@ -77,7 +77,44 @@ EOF
   return 0
 }
 
-# TODO 2重起動チェック
+# このスクリプトがすでに実行中かどうかを判定する
+# 戻り値: 0:実行中でない 1:実行中
+isRunning() {
+  _isRunning_func_basename=`basename $0`
+  _isRunning_func_pidfile=${TMP_DIR}/${_isRunning_func_basename}.pid
+
+  while true
+  do
+    if ln -s $$ ${_isRunning_func_pidfile} 2> /dev/null; then
+      # pidファイルシンボリックリンクが作成できた場合は実行中でない
+      break
+    else
+      # このスクリプト名のプロセス一覧に、pidファイルのPIDが存在するかチェック
+      _isRunning_func_pidOfPidfile=`ls -l ${_isRunning_func_pidfile} | awk '{print $NF}'`
+      _isRunning_func_p=""
+      for _isRunning_func_p in `pgrep -f ${_isRunning_func_basename}`
+      do
+        if [ $_isRunning_func_pidOfPidfile -eq $_isRunning_func_p ]; then
+          return 1
+        fi
+      done
+    fi
+    rm -f $_isRunning_func_pidfile
+  done
+
+  # このスクリプトの終了時またはHUP、INT、QUIT、TERMシグナル受信時にpidファイルを削除する
+  trap "rm -f $pidfile; exit 0" EXIT
+  trap "rm -f $pidfile; exit 1" 1 2 3 15
+
+  return 0
+}
+
+# 2重起動チェック
+isRunning
+if [ $? -ne 0 ]; then
+  echo "this script is already running"
+  exit 0
+fi
 
 hasError="false"
 prefix=`hostname`_`date '+%Y%m%d%H%M%S'`_
