@@ -78,14 +78,15 @@ do
     if [ $? -ne 0 ]; then
       echo "ftp Error. file=${endFilePath}"
       hasError="true"
+      rm -f $endFilePath
       continue
     fi
+    rm -f $endFilePath
   fi
 
   # 既に解放されているログファイルだった場合は削除
   if [ $logFileStatus = "inactive" ]; then
     rm -f $targetFilePath
-    rm -f $endFilePath
   fi
 done
 exec 0<&9 9<&-
