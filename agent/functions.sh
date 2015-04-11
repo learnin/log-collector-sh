@@ -116,7 +116,7 @@ isRunning() {
   done
 
   # このスクリプトの終了時またはHUP、INT、QUIT、TERMシグナル受信時にpidファイルを削除する
-  trap "rm -f $_isRunning_pidfile; exit 0" EXIT
+  trap "rm -f $_isRunning_pidfile" EXIT
   trap "rm -f $_isRunning_pidfile; exit 1" 1 2 3 15
 
   return 1
