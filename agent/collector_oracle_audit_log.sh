@@ -3,12 +3,7 @@ set -u
 
 # Solaris 10 の sh 及び Red Hat Enterprise Linux/CentOS の bash で実行することを想定
 
-if [ -n "$1" ]; then
-  . ./"$1"
-else
-  . ./config.profile
-fi
-
+. ${1:-./config.profile}
 . ./functions.sh
 
 # 2重起動チェック
