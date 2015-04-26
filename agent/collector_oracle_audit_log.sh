@@ -29,6 +29,7 @@ if [ -f $LAST_COLLECT_DATETIME_FILE ]; then
   last_collect_datetime=`cat $LAST_COLLECT_DATETIME_FILE`
 else
   last_collect_datetime="200001010000.00"
+  echo $last_collect_datetime > $LAST_COLLECT_DATETIME_FILE
 fi
 touch -t $last_collect_datetime $LAST_COLLECT_DATETIME_FILE
 
