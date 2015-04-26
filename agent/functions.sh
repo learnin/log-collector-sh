@@ -82,9 +82,6 @@ EOF
   if [ `grep -c "$_doFtpPut_success_msg" $_doFtpPut_ftpLog` -ne 1 ]; then
     return 1
   fi
-  if [ `egrep -c "^4|^6" $_doFtpPut_ftpLog` -ne 0 ]; then
-    return 1
-  fi
   return 0
 }
 
