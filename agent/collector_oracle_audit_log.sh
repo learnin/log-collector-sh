@@ -66,7 +66,7 @@ do
     fi
 
     # 転送完了通知用ファイルを転送
-    endFilePath=${TMP_DIR}/${prefix}`echo $targetFileName | awk -F . '{print $1}'`.end
+    endFilePath=${TMP_DIR}/${prefix}`echo $targetFileName | awk -F"." '{print $1}'`.end
     touch $endFilePath
     endFileName=`basename $endFilePath`
     doFtpPut $endFilePath ${FTP_DIR}/${endFileName} ${TMP_DIR}/ftp.log $FTP_SUCCESS_MSG
