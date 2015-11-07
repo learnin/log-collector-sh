@@ -39,8 +39,17 @@ now=`date '+%Y%m%d%H%M.%S'`
 # 一部だけが転送されてしまい、かつ次回の処理対象からも漏れてしまうことを防止するため1秒待つ
 sleep 1
 
-ls ${TARGET_LOG_DIR}/*.aud > $targetFileList 2> /dev/null
-ls ${TARGET_LOG_DIR}/*.xml >> $targetFileList 2> /dev/null
+# 大量に該当ファイルがある場合、ls ${TARGET_LOG_DIR}/*.aud では 変数展開により引数が長すぎるというエラーになるためfindを使う
+find ${TARGET_LOG_DIR} -name '*.aud' -type f -print > $targetFileList
+if [ $? -ne 0 ]; then
+  echo "${TARGET_LOG_DIR}/*.aud find error"
+  exit 1
+fi
+find ${TARGET_LOG_DIR} -name '*.xml' -type f -print >> $targetFileList
+if [ $? -ne 0 ]; then
+  echo "${TARGET_LOG_DIR}/*.xml find error"
+  exit 1
+fi
 
 exec 9<&0 < $targetFileList
 while read targetFilePath
